@@ -1,19 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [error, setError] = useState('');
 
   useEffect(() => {
     let active = true;
 
     async function completeSignIn() {
-      const code = searchParams.get('code');
+      const code = new URLSearchParams(window.location.search).get('code');
 
       if (code) {
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
@@ -37,7 +36,7 @@ export default function AuthCallbackPage() {
     return () => {
       active = false;
     };
-  }, [router, searchParams]);
+  }, [router]);
 
   if (error) {
     return (
