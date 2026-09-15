@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '');
 
 if (!API_URL) throw new Error('Missing NEXT_PUBLIC_API_URL');
 
@@ -49,10 +49,21 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = data.session?.access_token;
   if (!token) throw new Error('Votre session a expiré. Veuillez vous reconnecter.');
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(options.headers ?? {}) },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...(options.headers ?? {}),
+      },
+      cache: 'no-store',
+    });
+  } catch {
+    throw new Error("Impossible de joindre l'API. Vérifiez que le backend est disponible et que l'URL API est correctement configurée.");
+  }
 
   if (!response.ok) {
     let message = `Erreur API (${response.status})`;
