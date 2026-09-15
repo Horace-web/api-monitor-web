@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { api, PaginationMeta, Service } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 
@@ -16,11 +16,12 @@ export default function ServicesPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  async function load() {
-    try { const result = await api.services.list({ page, limit: 10, search: search || undefined }); setItems(result.data); setMeta(result.meta); }
+  const load = useCallback(async () => {
+    try { const result = await api.services.list({ page, limit: 10, search: search || undefined }); setItems(result.data); setMeta(result.meta); setError(''); }
     catch (err) { setError(err instanceof Error ? err.message : 'Impossible de charger les services.'); }
-  }
-  useEffect(() => { supabase.auth.getUser().then(({ data }) => { if (!data.user) window.location.href = '/login'; else load(); }); }, [page, search]);
+  }, [page, search]);
+
+  useEffect(() => { supabase.auth.getUser().then(({ data }) => { if (!data.user) window.location.href = '/login'; else void load(); }); }, [load]);
 
   async function create(event: FormEvent) {
     event.preventDefault(); if (!name.trim()) return; setBusy(true); setError('');
