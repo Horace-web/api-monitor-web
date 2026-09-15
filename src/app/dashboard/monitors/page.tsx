@@ -10,7 +10,16 @@ type Filter = 'ALL' | 'UP' | 'DOWN' | 'PAUSED';
 
 export default function MonitorsPage() {
   const [items, setItems] = useState<Monitor[]>([]); const [services, setServices] = useState<Service[]>([]); const [meta, setMeta] = useState(emptyMeta); const [page, setPage] = useState(1); const [search, setSearch] = useState(''); const [serviceId, setServiceId] = useState(''); const [status, setStatus] = useState<Filter>('ALL'); const [name, setName] = useState(''); const [url, setUrl] = useState(''); const [createService, setCreateService] = useState(''); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
-  const load = useCallback(async () => { try { const [monitors, serviceData] = await Promise.all([api.monitors.list({ page, limit: 10, search: search || undefined, serviceId: serviceId || undefined, status: status === 'ALL' ? undefined : status }), api.services.list({ page: 1, limit: 50 })]); setItems(monitors.data); setMeta(monitors.meta); setServices(serviceData.data); if (createService && !serviceData.data.some((service) => service.id === createService)) setCreateService(''); setError(''); } catch (err) { setError(err instanceof Error ? err.message : 'Impossible de charger les monitors.'); } }, [page, search, serviceId, status, createService]);
+  const load = useCallback(async () => {
+    try {
+      const [monitors, serviceData] = await Promise.all([api.monitors.list({ page, limit: 10, search: search || undefined, serviceId: serviceId || undefined, status: status === 'ALL' ? undefined : status }), api.services.list({ page: 1, limit: 50 })]);
+      const enriched = await Promise.all(monitors.data.map(async (monitor) => {
+        if (monitor.latestCheck) return monitor;
+        try { return { ...monitor, latestCheck: await api.checkResults.latest(monitor.id) }; } catch { return monitor; }
+      }));
+      setItems(enriched); setMeta(monitors.meta); setServices(serviceData.data); if (createService && !serviceData.data.some((service) => service.id === createService)) setCreateService(''); setError('');
+    } catch (err) { setError(err instanceof Error ? err.message : 'Impossible de charger les monitors.'); }
+  }, [page, search, serviceId, status, createService]);
   useEffect(() => { supabase.auth.getUser().then(({ data }) => { if (!data.user) window.location.href = '/login'; else void load(); }); }, [load]);
   async function create(event: FormEvent) { event.preventDefault(); if (!createService || !name.trim() || !url.trim()) return; setBusy(true); setError(''); try { await api.monitors.create({ serviceId: createService, name: name.trim(), url: url.trim(), interval: 60, timeout: 10000, expectedStatus: 200 }); setName(''); setUrl(''); setCreateService(''); setPage(1); await load(); } catch (err) { setError(err instanceof Error ? err.message : 'Création impossible.'); } finally { setBusy(false); } }
   async function toggle(item: Monitor) { try { if (item.isActive) await api.monitors.deactivate(item.id); else await api.monitors.activate(item.id); await load(); } catch (err) { setError(err instanceof Error ? err.message : 'Modification impossible.'); } }
