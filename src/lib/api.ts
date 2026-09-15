@@ -9,7 +9,8 @@ export type Service = { id: string; name: string; description?: string | null; c
 export type CheckResult = { id: string; monitorId: string; status: 'UP' | 'DOWN'; statusCode?: number | null; responseTime?: number | null; error?: string | null; checkedAt: string };
 export type Monitor = { id: string; name: string; url: string; method: 'GET'; interval: number; timeout: number; expectedStatus: number; isActive: boolean; serviceId: string; createdAt: string; updatedAt: string; latestCheck?: CheckResult | null; service?: { name: string } };
 export type MonitorStats = { totalChecks: number; successfulChecks: number; failedChecks: number; uptimePercentage: number | null; averageResponseTime: number | null };
-export type DashboardStats = { services: number; activeMonitors: number; pausedMonitors: number; totalMonitors: number; totalChecks: number; successfulChecks: number; failedChecks: number; uptimePercentage: number | null; averageResponseTime: number | null; recentDown: Array<{ monitorId: string; statusCode: number | null; error: string | null; checkedAt: string; monitor: { name: string; service: { name: string } } }> };
+export type DashboardTrendPoint = { time: string; checks: number; up: number; down: number; averageResponseTime: number | null };
+export type DashboardStats = { services: number; activeMonitors: number; pausedMonitors: number; totalMonitors: number; totalChecks: number; successfulChecks: number; failedChecks: number; uptimePercentage: number | null; averageResponseTime: number | null; trend: DashboardTrendPoint[] };
 export type Alert = { id: string; monitorId: string; statusCode: number | null; responseTime: number | null; error: string | null; checkedAt: string; monitor: { name: string; url: string; service: { name: string } } };
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -33,10 +34,7 @@ export const api = {
   monitors: { list: (params: { page?: number; limit?: number; serviceId?: string; status?: 'UP' | 'DOWN' | 'PAUSED'; search?: string } = {}) => request<Paginated<Monitor>>(`/monitors${query({ page: params.page ?? 1, limit: params.limit ?? 10, serviceId: params.serviceId, status: params.status, search: params.search })}`), get: (id: string) => request<Monitor>(`/monitors/${id}`), create: (payload: { serviceId: string; name: string; url: string; interval?: number; timeout?: number; expectedStatus?: number }) => request<Monitor>('/monitors', { method: 'POST', body: JSON.stringify(payload) }), activate: (id: string) => request<Monitor>(`/monitors/${id}/activate`, { method: 'POST' }), deactivate: (id: string) => request<Monitor>(`/monitors/${id}/deactivate`, { method: 'POST' }), remove: (id: string) => request<void>(`/monitors/${id}`, { method: 'DELETE' }) },
   checkResults: {
     list: (monitorId: string, params: { page?: number; limit?: number; from?: string; to?: string; status?: 'UP' | 'DOWN' } = {}) => request<Paginated<CheckResult>>(`/check-results/monitor/${monitorId}${query({ page: params.page ?? 1, limit: params.limit ?? 20, from: params.from, to: params.to, status: params.status })}`),
-    latest: async (monitorId: string) => {
-      const result = await request<Paginated<CheckResult> | CheckResult[]>(`/check-results/monitor/${monitorId}${query({ page: 1, limit: 1 })}`);
-      return Array.isArray(result) ? result[0] ?? null : result.data[0] ?? null;
-    },
+    latest: async (monitorId: string) => { const result = await request<Paginated<CheckResult> | CheckResult[]>(`/check-results/monitor/${monitorId}${query({ page: 1, limit: 1 })}`); return Array.isArray(result) ? result[0] ?? null : result.data[0] ?? null; },
     stats: (monitorId: string) => request<MonitorStats>(`/check-results/monitor/${monitorId}/stats`),
   },
 };
