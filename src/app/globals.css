@@ -13,10 +13,18 @@
 
 * { box-sizing: border-box; }
 
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  background: var(--ink);
+}
 
 html,
-body { min-height: 100%; }
+body {
+  min-height: 100%;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
 
 body {
   margin: 0;
@@ -28,21 +36,27 @@ body {
 }
 
 button,
-input { font: inherit; }
+input,
+select,
+textarea { font: inherit; }
+
+button,
+a { -webkit-tap-highlight-color: transparent; }
 
 ::selection { background: rgba(61, 111, 255, 0.35); }
 
 .data-mono { font-family: var(--font-space-mono), monospace; }
 
 .auth-shell {
-  min-height: 100vh;
+  min-height: 100svh;
   width: 100%;
-  background: #0b0f1a;
+  overflow-x: hidden;
+  background: var(--ink);
   color: #f8fafc;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem 1.5rem;
+  padding: 1.5rem 1rem;
 }
 
 .auth-container {
@@ -54,16 +68,17 @@ input { font: inherit; }
   width: 100%;
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 1rem;
-  background: #111827;
+  background: var(--ink-card);
   padding: 2rem;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
 }
 
 .auth-input {
   width: 100%;
+  min-width: 0;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 0.75rem;
-  background: #0b0f1a;
+  background: var(--ink);
   color: white;
   padding: 0.75rem 1rem;
   font-size: 0.875rem;
@@ -116,3 +131,8 @@ input { font: inherit; }
 }
 
 .animate-page-in { animation: page-in 400ms ease both; }
+
+@media (max-width: 640px) {
+  .auth-shell { padding: 1rem; align-items: flex-start; padding-top: 2rem; }
+  .auth-card { padding: 1.25rem; border-radius: 0.875rem; }
+}
