@@ -31,5 +31,12 @@ export const api = {
   alerts: { list: (params: { page?: number; limit?: number } = {}) => request<Paginated<Alert>>(`/alerts${query({ page: params.page ?? 1, limit: params.limit ?? 20 })}`) },
   services: { list: (params: { page?: number; limit?: number; search?: string } = {}) => request<Paginated<Service>>(`/services${query({ page: params.page ?? 1, limit: params.limit ?? 10, search: params.search })}`), create: (payload: { name: string; description?: string }) => request<Service>('/services', { method: 'POST', body: JSON.stringify(payload) }), remove: (id: string) => request<void>(`/services/${id}`, { method: 'DELETE' }) },
   monitors: { list: (params: { page?: number; limit?: number; serviceId?: string; status?: 'UP' | 'DOWN' | 'PAUSED'; search?: string } = {}) => request<Paginated<Monitor>>(`/monitors${query({ page: params.page ?? 1, limit: params.limit ?? 10, serviceId: params.serviceId, status: params.status, search: params.search })}`), get: (id: string) => request<Monitor>(`/monitors/${id}`), create: (payload: { serviceId: string; name: string; url: string; interval?: number; timeout?: number; expectedStatus?: number }) => request<Monitor>('/monitors', { method: 'POST', body: JSON.stringify(payload) }), activate: (id: string) => request<Monitor>(`/monitors/${id}/activate`, { method: 'POST' }), deactivate: (id: string) => request<Monitor>(`/monitors/${id}/deactivate`, { method: 'POST' }), remove: (id: string) => request<void>(`/monitors/${id}`, { method: 'DELETE' }) },
-  checkResults: { list: (monitorId: string, params: { page?: number; limit?: number; from?: string; to?: string; status?: 'UP' | 'DOWN' } = {}) => request<Paginated<CheckResult>>(`/check-results/monitor/${monitorId}${query({ page: params.page ?? 1, limit: params.limit ?? 20, from: params.from, to: params.to, status: params.status })}`), stats: (monitorId: string) => request<MonitorStats>(`/check-results/monitor/${monitorId}/stats`) }
+  checkResults: {
+    list: (monitorId: string, params: { page?: number; limit?: number; from?: string; to?: string; status?: 'UP' | 'DOWN' } = {}) => request<Paginated<CheckResult>>(`/check-results/monitor/${monitorId}${query({ page: params.page ?? 1, limit: params.limit ?? 20, from: params.from, to: params.to, status: params.status })}`),
+    latest: async (monitorId: string) => {
+      const result = await request<Paginated<CheckResult> | CheckResult[]>(`/check-results/monitor/${monitorId}${query({ page: 1, limit: 1 })}`);
+      return Array.isArray(result) ? result[0] ?? null : result.data[0] ?? null;
+    },
+    stats: (monitorId: string) => request<MonitorStats>(`/check-results/monitor/${monitorId}/stats`),
+  },
 };
