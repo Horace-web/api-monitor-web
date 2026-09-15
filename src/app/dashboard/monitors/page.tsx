@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { api, Monitor, PaginationMeta, Service } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 
@@ -21,7 +21,7 @@ export default function MonitorsPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  async function load() {
+  const load = useCallback(async () => {
     try {
       const [monitors, serviceData] = await Promise.all([
         api.monitors.list({ page, limit: 10, search: search || undefined, serviceId: serviceId || undefined, status: status === 'ALL' ? undefined : status }),
@@ -29,9 +29,11 @@ export default function MonitorsPage() {
       ]);
       setItems(monitors.data); setMeta(monitors.meta); setServices(serviceData.data);
       if (!createService && serviceData.data[0]) setCreateService(serviceData.data[0].id);
+      setError('');
     } catch (err) { setError(err instanceof Error ? err.message : 'Impossible de charger les monitors.'); }
-  }
-  useEffect(() => { supabase.auth.getUser().then(({ data }) => { if (!data.user) window.location.href = '/login'; else load(); }); }, [page, search, serviceId, status]);
+  }, [page, search, serviceId, status, createService]);
+
+  useEffect(() => { supabase.auth.getUser().then(({ data }) => { if (!data.user) window.location.href = '/login'; else void load(); }); }, [load]);
 
   async function create(event: FormEvent) {
     event.preventDefault(); if (!createService || !name.trim() || !url.trim()) return; setBusy(true); setError('');
