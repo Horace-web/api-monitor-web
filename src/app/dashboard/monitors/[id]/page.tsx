@@ -10,7 +10,8 @@ type Period = 'ALL' | '24H' | '7D' | '30D';
 type StatusFilter = 'ALL' | 'UP' | 'DOWN';
 
 export default function MonitorDetailPage() {
-  const params = useParams<{ id: string }>();
+  const params = useParams();
+  const id = typeof params.id === 'string' ? params.id : Array.isArray(params.id) ? params.id[0] : '';
   const [monitor, setMonitor] = useState<Monitor | null>(null);
   const [stats, setStats] = useState<MonitorStats | null>(null);
   const [checks, setChecks] = useState<CheckResult[]>([]);
@@ -21,17 +22,24 @@ export default function MonitorDetailPage() {
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
-    if (!params.id) return;
+    if (!id) return;
     try {
-      const from = period === 'ALL' ? undefined : new Date(Date.now() - ({ '24H': 24, '7D': 24 * 7, '30D': 24 * 30 }[period] * 60 * 60 * 1000)).toISOString();
+      const hours = period === '24H' ? 24 : period === '7D' ? 24 * 7 : period === '30D' ? 24 * 30 : 0;
+      const from = hours ? new Date(Date.now() - hours * 60 * 60 * 1000).toISOString() : undefined;
       const [monitorData, statsData, checksData] = await Promise.all([
-        api.monitors.get(params.id),
-        api.checkResults.stats(params.id),
-        api.checkResults.list(params.id, { page, limit: 20, from, status: statusFilter === 'ALL' ? undefined : statusFilter }),
+        api.monitors.get(id),
+        api.checkResults.stats(id),
+        api.checkResults.list(id, { page, limit: 20, from, status: statusFilter === 'ALL' ? undefined : statusFilter }),
       ]);
-      setMonitor(monitorData); setStats(statsData); setChecks(checksData.data); setMeta(checksData.meta); setError('');
-    } catch (err) { setError(err instanceof Error ? err.message : 'Impossible de charger ce monitor.'); }
-  }, [params.id, page, period, statusFilter]);
+      setMonitor(monitorData);
+      setStats(statsData);
+      setChecks(Array.isArray(checksData) ? checksData : checksData.data ?? []);
+      setMeta(Array.isArray(checksData) ? { page: 1, limit: checksData.length, total: checksData.length, totalPages: 1 } : checksData.meta);
+      setError('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Impossible de charger ce monitor.');
+    }
+  }, [id, page, period, statusFilter]);
 
   useEffect(() => { void load(); }, [load]);
 
