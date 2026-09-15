@@ -8,7 +8,6 @@ const items = [
   { href: '/dashboard', label: 'Vue générale', icon: '⌂' },
   { href: '/dashboard/monitors', label: 'Monitors', icon: '◉' },
   { href: '/dashboard/services', label: 'Services', icon: '▦' },
-  { href: '/dashboard/alerts', label: 'Alertes', icon: '!' },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
