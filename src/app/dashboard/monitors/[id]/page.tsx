@@ -37,6 +37,7 @@ export default function MonitorDetailPage() {
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [updatingInterval, setUpdatingInterval] = useState(false);
+  const [pendingInterval, setPendingInterval] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -44,19 +45,14 @@ export default function MonitorDetailPage() {
       const hours = period === '24H' ? 24 : period === '7D' ? 24 * 7 : period === '30D' ? 24 * 30 : 0;
       const from = hours ? new Date(Date.now() - hours * 60 * 60 * 1000).toISOString() : undefined;
       const [monitorData, statsData, checksData, latestCheck] = await Promise.all([
-        api.monitors.get(id),
-        api.checkResults.stats(id),
+        api.monitors.get(id), api.checkResults.stats(id),
         api.checkResults.list(id, { page, limit: 20, from, status: statusFilter === 'ALL' ? undefined : statusFilter }),
         api.checkResults.latest(id),
       ]);
       setMonitor({ ...monitorData, latestCheck: latestCheck ?? monitorData.latestCheck ?? null });
-      setStats(statsData);
-      setChecks(checksData.data);
-      setMeta(checksData.meta);
-      setError('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger ce monitor.');
-    }
+      setPendingInterval(monitorData.interval);
+      setStats(statsData); setChecks(checksData.data); setMeta(checksData.meta); setError('');
+    } catch (err) { setError(err instanceof Error ? err.message : 'Impossible de charger ce monitor.'); }
   }, [id, page, period, statusFilter]);
 
   useEffect(() => { void load(); }, [load]);
@@ -64,24 +60,19 @@ export default function MonitorDetailPage() {
   async function refreshChecks() {
     if (refreshing) return;
     setRefreshing(true);
-    try {
-      await load();
-    } finally {
-      setRefreshing(false);
-    }
+    try { await load(); } finally { setRefreshing(false); }
   }
 
-  async function updateInterval(value: number) {
-    if (!monitor || updatingInterval || value === monitor.interval) return;
+  async function saveInterval() {
+    if (!monitor || pendingInterval == null || pendingInterval === monitor.interval || updatingInterval) return;
     setUpdatingInterval(true);
     try {
-      const updated = await api.monitors.updateInterval(monitor.id, value);
+      const updated = await api.monitors.updateInterval(monitor.id, pendingInterval);
       setMonitor((current) => current ? { ...current, ...updated } : updated);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Impossible de mettre à jour l'intervalle.");
-    } finally {
-      setUpdatingInterval(false);
-    }
+      setPendingInterval(updated.interval);
+      setError('');
+    } catch (err) { setError(err instanceof Error ? err.message : "Impossible de mettre à jour l'intervalle."); }
+    finally { setUpdatingInterval(false); }
   }
 
   if (error) return <div className="mx-auto max-w-6xl px-4 py-10 lg:px-8"><p className="text-[var(--flare)]">{error}</p><Link href="/dashboard/monitors" className="mt-4 inline-block text-sm text-[var(--electric)]">← Retour aux monitors</Link></div>;
@@ -89,15 +80,15 @@ export default function MonitorDetailPage() {
 
   const status = !monitor.isActive ? 'PAUSED' : monitor.latestCheck?.status ?? 'NO CHECK';
   const statusClass = status === 'DOWN' ? 'text-[var(--flare)] bg-[var(--flare)]/10' : status === 'PAUSED' ? 'text-[var(--solar)] bg-[var(--solar)]/10' : status === 'NO CHECK' ? 'text-white/50 bg-white/[0.05]' : 'text-[var(--volt)] bg-[var(--volt)]/10';
-  const hasPrevious = meta.page > 1;
-  const hasNext = meta.page < meta.totalPages;
+  const hasPrevious = meta.page > 1; const hasNext = meta.page < meta.totalPages;
+  const intervalChanged = pendingInterval !== null && pendingInterval !== monitor.interval;
 
   return <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6 sm:py-10 lg:px-8">
     <Link href="/dashboard/monitors" className="text-sm text-white/40 hover:text-white">← Retour aux monitors</Link>
-    <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div><div className="flex items-center gap-3"><span className={`h-3 w-3 rounded-full ${status === 'DOWN' ? 'bg-[var(--flare)]' : status === 'PAUSED' ? 'bg-[var(--solar)]' : status === 'NO CHECK' ? 'bg-white/25' : 'bg-[var(--volt)]'}`} /><p className="data-mono text-xs uppercase tracking-[0.16em] text-white/35">{monitor.service?.name ?? 'Service'}</p></div><h1 className="mt-2 text-3xl font-bold">{monitor.name}</h1><p className="data-mono mt-2 break-all text-sm text-white/35">{monitor.url}</p></div><div className="flex items-center gap-2"><button type="button" onClick={() => void refreshChecks()} disabled={refreshing} aria-label="Actualiser les checks" title="Actualiser les checks" className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.025] px-3 py-2 text-xs text-white/65 transition hover:border-white/20 hover:text-white disabled:cursor-wait disabled:opacity-50"><span className={refreshing ? 'animate-spin' : ''}>↻</span>{refreshing ? 'Actualisation…' : 'Actualiser'}</button><span className={`data-mono rounded-full px-3 py-2 text-xs font-bold ${statusClass}`}>{status}</span></div></div>
+    <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div><div className="flex items-center gap-3"><span className={`h-3 w-3 rounded-full ${status === 'DOWN' ? 'bg-[var(--flare)]' : status === 'PAUSED' ? 'bg-[var(--solar)]' : status === 'NO CHECK' ? 'bg-white/25' : 'bg-[var(--volt)]'}`} /><p className="data-mono text-xs uppercase tracking-[0.16em] text-white/35">{monitor.service?.name ?? 'Service'}</p></div><h1 className="mt-2 text-3xl font-bold">{monitor.name}</h1><p className="data-mono mt-2 break-all text-sm text-white/35">{monitor.url}</p></div><div className="flex items-center gap-2"><button type="button" onClick={() => void refreshChecks()} disabled={refreshing} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.025] px-3 py-2 text-xs text-white/65 transition hover:border-white/20 hover:text-white disabled:cursor-wait disabled:opacity-50"><span className={refreshing ? 'animate-spin' : ''}>↻</span>{refreshing ? 'Actualisation…' : 'Actualiser'}</button><span className={`data-mono rounded-full px-3 py-2 text-xs font-bold ${statusClass}`}>{status}</span></div></div>
     <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-5"><Stat label="Checks" value={String(stats.totalChecks)} /><Stat label="Réussis" value={String(stats.successfulChecks)} tone="text-[var(--volt)]" /><Stat label="Échecs" value={String(stats.failedChecks)} tone="text-[var(--flare)]" /><Stat label="Uptime" value={stats.uptimePercentage == null ? '—' : `${stats.uptimePercentage.toFixed(2)}%`} tone="text-[var(--volt)]" /><Stat label="Réponse moy." value={stats.averageResponseTime == null ? '—' : `${stats.averageResponseTime}ms`} tone="text-[var(--electric)]" /></div>
     <section className="mt-6 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-5 sm:p-6"><div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div><p className="data-mono text-xs uppercase tracking-[0.15em] text-white/30">Historique</p><h2 className="mt-2 text-xl font-semibold">Checks</h2><p className="mt-1 text-xs text-white/30">{meta.total} check(s) correspondant aux filtres</p></div><div className="flex flex-wrap gap-2"><select value={period} onChange={(e) => { setPeriod(e.target.value as Period); setPage(1); }} className="auth-input w-auto"><option value="ALL">Toute la période</option><option value="24H">Dernières 24 h</option><option value="7D">7 derniers jours</option><option value="30D">30 derniers jours</option></select><select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value as StatusFilter); setPage(1); }} className="auth-input w-auto"><option value="ALL">Tous</option><option value="UP">UP</option><option value="DOWN">DOWN</option></select></div></div><div className="mt-5 space-y-2">{checks.map((check) => <div key={check.id} className="flex flex-col gap-2 rounded-xl border border-white/[0.06] bg-[var(--ink)] p-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><span className={`h-2.5 w-2.5 rounded-full ${check.status === 'DOWN' ? 'bg-[var(--flare)]' : 'bg-[var(--volt)]'}`} /><span className={`data-mono text-xs font-bold ${check.status === 'DOWN' ? 'text-[var(--flare)]' : 'text-[var(--volt)]'}`}>{check.status}</span><span className="data-mono text-xs text-white/35">HTTP {check.statusCode ?? '—'}</span></div><div className="flex gap-4 text-xs text-white/35"><span>{check.responseTime == null ? '—' : `${check.responseTime}ms`}</span><span>{new Date(check.checkedAt).toLocaleString()}</span></div></div>)}{!checks.length && <p className="py-10 text-center text-sm text-white/30">Aucun check pour ces filtres.</p>}</div><div className="mt-5 flex items-center justify-between border-t border-white/[0.06] pt-4"><span className="data-mono text-[10px] text-white/30">{meta.total} checks · Page {meta.page} / {Math.max(meta.totalPages, 1)}</span><div className="flex items-center gap-2">{hasPrevious && <button onClick={() => setPage(page - 1)} className="rounded-lg border border-white/10 px-3 py-2 text-xs hover:border-white/20">← Précédents</button>}{hasNext && <button onClick={() => setPage(page + 1)} className="rounded-lg border border-white/10 px-3 py-2 text-xs hover:border-white/20">Suivants →</button>}</div></div></section>
-    <section className="mt-6 grid gap-3 sm:grid-cols-3"><Info label="Méthode" value={monitor.method} /><div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-4"><p className="data-mono text-[10px] uppercase tracking-[0.14em] text-white/30">Intervalle</p><select value={monitor.interval} onChange={(e) => void updateInterval(Number(e.target.value))} disabled={updatingInterval} className="auth-input mt-2 w-full"><option value={monitor.interval}>{formatInterval(monitor.interval)}{intervalOptions.some((option) => option.value === monitor.interval) ? '' : ' — personnalisé'}</option>{intervalOptions.filter((option) => option.value !== monitor.interval).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select><p className="mt-2 text-[10px] text-white/25">{updatingInterval ? 'Mise à jour…' : 'Le prochain GET suivra ce nouvel intervalle.'}</p></div><Info label="Timeout" value={`${monitor.timeout}ms`} /><Info label="HTTP attendu" value={String(monitor.expectedStatus)} /><Info label="Créé le" value={new Date(monitor.createdAt).toLocaleString()} /><Info label="Dernière mise à jour" value={new Date(monitor.updatedAt).toLocaleString()} /></section>
+    <section className="mt-6 grid gap-3 sm:grid-cols-3"><Info label="Méthode" value={monitor.method} /><div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-4"><p className="data-mono text-[10px] uppercase tracking-[0.14em] text-white/30">Intervalle</p><div className="mt-2 flex flex-col gap-2 sm:flex-row"><select value={pendingInterval ?? monitor.interval} onChange={(e) => setPendingInterval(Number(e.target.value))} disabled={updatingInterval} className="auth-input w-full sm:flex-1"><option value={monitor.interval}>{formatInterval(monitor.interval)}{intervalOptions.some((option) => option.value === monitor.interval) ? '' : ' — personnalisé'}</option>{intervalOptions.filter((option) => option.value !== monitor.interval).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select><button type="button" onClick={() => void saveInterval()} disabled={!intervalChanged || updatingInterval} className="rounded-xl border border-[var(--electric)]/40 bg-[var(--electric)]/10 px-4 py-2 text-xs font-semibold text-[var(--electric)] transition hover:bg-[var(--electric)]/20 disabled:cursor-not-allowed disabled:opacity-30">{updatingInterval ? 'Enregistrement…' : 'Enregistrer'}</button></div><p className="mt-2 text-[10px] text-white/25">{intervalChanged ? 'Clique sur Enregistrer pour appliquer le nouvel intervalle.' : 'Le changement ne sera appliqué qu’après validation.'}</p></div><Info label="Timeout" value={`${monitor.timeout}ms`} /><Info label="HTTP attendu" value={String(monitor.expectedStatus)} /><Info label="Créé le" value={new Date(monitor.createdAt).toLocaleString()} /><Info label="Dernière mise à jour" value={new Date(monitor.updatedAt).toLocaleString()} /></section>
   </div>;
 }
 function Stat({ label, value, tone = 'text-white' }: { label: string; value: string; tone?: string }) { return <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-4"><p className="data-mono text-[10px] uppercase tracking-[0.14em] text-white/30">{label}</p><p className={`data-mono mt-3 text-2xl font-bold ${tone}`}>{value}</p></div>; }
