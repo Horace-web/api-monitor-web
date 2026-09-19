@@ -23,9 +23,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen bg-[var(--ink)] text-white">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-white/[0.07] bg-[#0a0e18] lg:flex lg:flex-col">
-        <div className="flex-1 p-4 pt-8">
-          <p className="data-mono mb-3 px-3 text-[9px] uppercase tracking-[0.16em] text-white/25">Navigation</p>
-          <nav className="space-y-1">
+        <div className="border-b border-white/[0.07] px-6 py-6">
+          <Link href="/dashboard" className="data-mono text-sm font-bold tracking-tight">API<span className="text-[var(--electric)]">/</span>MONITOR</Link>
+          <p className="mt-2 text-xs text-white/30">Monitoring workspace</p>
+        </div>
+        <nav className="flex-1 space-y-1 p-4">
             {items.map((item) => (
               <Link key={item.href} href={item.href} className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-[240ms] ${isActive(item.href) ? 'bg-[var(--electric)]/12 text-white ring-1 ring-[var(--electric)]/20' : 'text-white/45 hover:bg-white/[0.04] hover:text-white'}`}>
                 <span className={`grid h-7 w-7 place-items-center rounded-md text-xs ${isActive(item.href) ? 'bg-[var(--electric)]/15 text-[var(--electric)]' : 'bg-white/[0.04] text-white/40'}`}>{item.icon}</span>
@@ -39,8 +41,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
-      <header className="sticky top-0 z-40 border-b border-white/[0.07] bg-[var(--ink)]/95 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 lg:justify-end">
+      <header className="sticky top-0 z-40 border-b border-white/[0.07] bg-[var(--ink)]/95 backdrop-blur lg:hidden">
+        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
           <button type="button" aria-label={menuOpen ? 'Fermer le menu' : 'Ouvrir le menu'} aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)} className="grid h-10 w-10 place-items-center rounded-lg border border-white/[0.08] bg-white/[0.025] text-white/70 transition hover:border-white/15 hover:text-white lg:hidden">
             {menuOpen ? <span className="text-xl leading-none">×</span> : <span className="space-y-1"><span className="block h-px w-4 bg-current" /><span className="block h-px w-4 bg-current" /><span className="block h-px w-4 bg-current" /></span>}
           </button>
