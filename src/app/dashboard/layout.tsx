@@ -35,7 +35,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </Link>
             ))}
           </nav>
-        </div>
         <div className="border-t border-white/[0.07] p-4">
           <button onClick={logout} className="w-full rounded-lg px-3 py-2 text-left text-sm text-white/40 transition-colors hover:bg-[var(--flare)]/10 hover:text-[var(--flare)]">Déconnexion</button>
         </div>
