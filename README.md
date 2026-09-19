@@ -1,66 +1,72 @@
-# API Monitor - Frontend
+# API Monitor — Frontend
 
-## Overview
+Frontend de **API Monitor**, une plateforme full-stack de surveillance d'APIs et de services HTTP.
 
-API Monitor is a web application for monitoring API availability, response time and uptime. This repository contains the frontend built with **Next.js 14**, **React 18**, **TypeScript** and **Tailwind CSS**.
+Le frontend permet aux utilisateurs de s'authentifier, d'accéder à leur espace de monitoring et de consulter les indicateurs fournis par l'API NestJS.
 
-## Current state
+## Fonctionnalités
 
-The frontend now includes the first functional authentication flow with **Supabase Auth**:
+- Inscription avec email et mot de passe
+- Connexion avec Supabase Auth
+- Gestion de session
+- Déconnexion
+- Redirection automatique vers la connexion lorsqu'aucune session n'est active
+- Dashboard de monitoring
+- Statistiques des services et monitors
+- Uptime et nombre de checks
+- Suivi des échecs
+- Temps de réponse moyen
+- Tendance des checks sur les dernières 24 heures
+- Bascule entre checks et temps de réponse
+- Interface responsive avec navigation adaptée au mobile
+- Intégration avec l'API NestJS déployée sur Render
 
-- Registration with email/password
-- Login with email/password
-- Email-confirmation handling when enabled in Supabase
-- Authenticated dashboard shell
-- Automatic redirect to `/login` when no session exists
-- Logout
-- Supabase browser client
-- Monitoring-oriented visual system and responsive landing/auth pages
-- Monitoring favicon using the API health/heartbeat visual
+## Stack
 
-The monitoring dashboard UI is intentionally still a shell. Service/monitor CRUD and real metrics will be connected to the NestJS API progressively.
+- **Next.js 14** — App Router
+- **React 18**
+- **TypeScript**
+- **Tailwind CSS**
+- **Supabase Auth**
+- **Axios**
+- **Space Grotesk + Space Mono**
 
-## Design system
+## Architecture
 
-The frontend uses the following visual tokens:
+```text
+Browser
+   │
+   ├── Supabase Auth
+   │       └── Session utilisateur
+   │
+   └── Axios + Bearer token
+           │
+           ▼
+     NestJS API
+           │
+           ▼
+     PostgreSQL / Supabase
+```
 
-| Role | Color |
-| --- | --- |
-| Ink | `#0B0F1A` |
-| Electric | `#3D6FFF` |
-| Volt | `#00E5A0` |
-| Flare | `#FF4757` |
-| Solar | `#FFB830` |
-
-Typography:
-
-- **Space Grotesk** for UI and content
-- **Space Mono** for endpoints, statuses and technical data
-
-Motion guidelines:
-
-- `120ms` for immediate interaction feedback
-- `240ms` for component transitions
-- `400ms` for page/loading entrances
-
-## Project Structure
+## Structure du projet
 
 ```text
 api-monitor-web/
 ├── src/
 │   ├── app/
-│   │   ├── (auth)/              # Login and registration
-│   │   ├── dashboard/           # Authenticated dashboard
+│   │   ├── (auth)/              # Connexion et inscription
+│   │   ├── dashboard/           # Dashboard authentifié
 │   │   ├── globals.css
 │   │   ├── layout.tsx
 │   │   ├── page.tsx
-│   │   ├── icon.svg             # Monitoring favicon
+│   │   ├── icon.svg             # Favicon monitoring
 │   │   └── providers.tsx
-│   ├── components/              # Reusable React components
-│   ├── lib/                     # Clients and utilities
-│   │   └── supabase.ts          # Supabase browser client
-│   ├── hooks/                   # Custom React hooks
-│   └── types/                   # TypeScript definitions
+│   ├── components/              # Composants réutilisables
+│   ├── lib/
+│   │   ├── api.ts               # Client API
+│   │   └── supabase.ts          # Client Supabase navigateur
+│   ├── hooks/                   # Hooks personnalisés
+│   └── types/                   # Types TypeScript
 ├── .env.example
 ├── .gitignore
 ├── next.config.js
@@ -69,77 +75,102 @@ api-monitor-web/
 └── README.md
 ```
 
-## Stack
+## Design system
 
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Authentication**: Supabase Auth
-- **HTTP Client**: Axios
-- **Fonts**: Space Grotesk + Space Mono
-- **Runtime**: Node.js 18+
+Le frontend utilise les tokens visuels suivants :
 
-## Environment variables
+| Rôle | Couleur |
+| --- | --- |
+| Ink | `#0B0F1A` |
+| Electric | `#3D6FFF` |
+| Volt | `#00E5A0` |
+| Flare | `#FF4757` |
+| Solar | `#FFB830` |
 
-The browser needs the Supabase project URL and the **publishable** key, so these variables intentionally use Next.js's `NEXT_PUBLIC_` prefix:
+Typographie :
+
+- **Space Grotesk** pour l'interface et le contenu
+- **Space Mono** pour les endpoints, statuts et données techniques
+
+## Variables d'environnement
+
+Créer un fichier `.env.local` à partir de `.env.example` :
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
-NEXT_PUBLIC_API_URL=https://your-api.onrender.com
+NEXT_PUBLIC_API_URL=https://api-monitor-api-7q9b.onrender.com
 NODE_ENV=development
 ```
 
-These values are suitable for browser exposure when they contain only the Supabase URL, Supabase publishable key and public API URL. **Never put a Supabase secret/service-role key, database password or other private credential in a `NEXT_PUBLIC_` variable.**
+Les variables `NEXT_PUBLIC_` sont exposées au navigateur. Elles ne doivent contenir aucune clé secrète, mot de passe de base de données ou clé Supabase service-role.
 
-For local development:
+## Installation
 
 ```bash
-cp .env.example .env.local
 npm install
 npm run dev
 ```
 
-## Backend integration
-
-The frontend connects to the **api-monitor-api** NestJS backend.
-
-Backend repository: https://github.com/Horace-web/api-monitor-api
-
-Production API:
+Application locale :
 
 ```text
-https://api-monitor-api-7q9b.onrender.com
+http://localhost:3000
 ```
 
-## Features
+## Backend
 
-- [x] User registration with Supabase Auth
-- [x] User login with Supabase Auth
-- [x] Session-aware dashboard
-- [x] Logout
-- [x] Monitoring visual system
-- [x] Monitoring favicon
-- [ ] Service management
-- [ ] Monitor management
-- [ ] Real monitoring statistics
-- [ ] Check-result history and charts
-- [ ] Incident alerts and notifications
-- [ ] Uptime reports
+Dépôt backend :
 
-## Available scripts
+https://github.com/Horace-web/api-monitor-api
 
-- `npm run dev` — Start the development server
-- `npm run build` — Build for production
-- `npm start` — Start the production server
-- `npm run lint` — Run ESLint
-- `npm run format` — Format code with Prettier
+API de production :
 
-## License
+https://api-monitor-api-7q9b.onrender.com
+
+Documentation Swagger :
+
+https://api-monitor-api-7q9b.onrender.com/docs
+
+## Production
+
+Frontend déployé sur Vercel :
+
+https://api-monitor-web.vercel.app
+
+Backend déployé sur Render :
+
+https://api-monitor-api-7q9b.onrender.com
+
+## Scripts
+
+| Commande | Utilisation |
+| --- | --- |
+| `npm run dev` | Serveur de développement |
+| `npm run build` | Build de production |
+| `npm start` | Serveur de production |
+| `npm run lint` | Vérification ESLint |
+| `npm run format` | Formatage Prettier |
+
+## État du projet
+
+| Fonctionnalité | État |
+| --- | --- |
+| Authentification Supabase | ✅ |
+| Dashboard | ✅ |
+| Statistiques de monitoring | ✅ |
+| Uptime et checks | ✅ |
+| Temps de réponse | ✅ |
+| Responsive desktop/mobile | ✅ |
+| Intégration API NestJS | ✅ |
+| Déploiement Vercel | ✅ |
+
+## Licence
 
 MIT
 
 ---
 
-**Created by**: Horace-web  
-**Version**: 0.1.0
+**Créé par :** Horace-web  
+**Projet :** API Monitor  
+**Version :** 1.0.0
